@@ -21,5 +21,7 @@ export PATH=dir/of/qsub_jobs_threads:$PATH
 ## Run:
 ```
 # More options will be shown in terminal.
-qsub_jobs_threads
+qsub_jobs_threads -j #jobs -t #threads -f makefile -q queue
+# or
+qsub_jobs_threads <#jobs> <#threads> <makefile> [queue]
 ```
