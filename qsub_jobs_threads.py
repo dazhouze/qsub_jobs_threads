@@ -251,7 +251,7 @@ class Parallel_jobs(object):
 				job_err = True
 		return job_err
 
-	def kill_all(self):
+	def kill_all(self, time_now):
 		'''
 		Kill all jobs.
 		'''
@@ -508,7 +508,7 @@ if __name__ == "__main__":
 
 		# if Eqw, dr, or exit status error, kill all jobs and exit the moniter program
 		if jobs.check_error(time_now) is not False:  # Eqw/dr/error
-			jobs.kill_all() # kill rest of jobs
+			jobs.kill_all(time_now) # kill rest of jobs
 			print('Moniter program Stopped\tTime: {}\tMakefile: {}'\
 					.format(time_now.strftime('%Y-%m-%d %H:%M:%S'), make_file))
 			break
@@ -517,7 +517,7 @@ if __name__ == "__main__":
 		finished_jobs, ongoing_jobs, exit_err =\
 				jobs.clean_finished(finished_jobs, time_now)
 		if exit_err and auto_kill==True:  # exit error, and auto-kill rest
-			jobs.kill_all() # kill rest of jobs
+			jobs.kill_all(time_now) # kill rest of jobs
 			print('Moniter program Stopped\tTime: {}\tMakefile: {}'\
 					.format(time_now.strftime('%Y-%m-%d %H:%M:%S'), make_file))
 			break
@@ -525,7 +525,7 @@ if __name__ == "__main__":
 
 		# check if qw qdel or lost job (cannt access accounting file)
 		if jobs.deduce_disappeared(time_now) is not False:
-			jobs.kill_all() # kill rest of jobs
+			jobs.kill_all(time_now) # kill rest of jobs
 			print('Moniter program Stopped\tTime: {}\tMakefile: {}'\
 					.format(time_now.strftime('%Y-%m-%d %H:%M:%S'), make_file))
 			break
