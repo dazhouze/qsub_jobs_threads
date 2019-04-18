@@ -463,7 +463,7 @@ if __name__ == "__main__":
 	try:
 		opts, args = getopt.getopt(sys.argv[1:], "hkj:t:f:q:")
 	except getopt.GetoptError:
-		sys.exit(usage())
+		sys.exit('\n*** Unknown parameter ***\n{}'.format(usage()))
 	for opt, arg in opts:
 		if opt == '-h':
 			sys.exit(usage())
@@ -477,19 +477,17 @@ if __name__ == "__main__":
 			make_file = arg
 		elif opt == '-q':
 			queue = arg
-		else:
-			sys.exit(usage())
 
 	# old style paramters
 	if 3 <= len(args) <= 4 and len(opts) == 0:  # old style paraters #jobs #threads makefile (queue)
 		n_jobs, threads, make_file = int(args[0]), int(args[1]), args[2]
 		queue = args[3] if len(args) == 4 else queue
 	elif len(args) > 0 or make_file is None:  # untraced paramters
-		sys.exit(usage())
+		sys.exit('\n*** Incorrect parameter ***\n{}'.format(usage()))
 
 	# makefile
 	if not os.path.isfile(make_file):
-		sys.exit('\nNo such file: {}\n{}'.format(make_file, usage()))
+		sys.exit('\n*** No such file: {} ***\n{}'.format(make_file, usage()))
 
 	# output log dir
 	if not os.path.exists(LOG_DIR):
