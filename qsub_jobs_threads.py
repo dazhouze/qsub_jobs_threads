@@ -63,6 +63,9 @@ class Parallel_jobs(object):
 		def get_target(self):
 			return self._target
 
+		def get_sge_name(self):
+			return self._sge_name
+
 		def is_timeout(self, time_now):
 			'''
 			Return if job timeout.
@@ -81,21 +84,16 @@ class Parallel_jobs(object):
 			'''
 			Return False if job stopped with error.
 			Return True if job finished successfully.
-			Return None if without information.
+			Return None if without information. (r / t / lose information)
 			'''
 			if isinstance(self._status, int):  # finished
 				if self._status > 0:  # stopped error
-					self.kill('error ({})'.format(self._status))
 					return False
 				else:  # finished successfully
-					print('Job finished\tID: {}\tName: {}\tTime: {}'
-						.format(self._id,
-							self._sge_name, 
-							datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
 					return True
 			return None  # un-finished
 
-		def submit(self, target, command, threads, queue, pe, log_dir):
+		def submit(self, target, command, threads, queue, pe, log_dir, time_now):
 			'''
 			Submit job.
 			'''
@@ -128,7 +126,7 @@ class Parallel_jobs(object):
 			# init
 			self._sge_name = sge_name
 			self._target = target
-			self._record_time = datetime.datetime.now()  # the submit time
+			self._record_time = time_now  # the submit time
 			self._id = job_id  # the sge given id
 			self._status = 't'  # the sge job status
 			print('Job submit\tID: {}\tName: {}\tTime: {}\tQueue: {}\tCPU: {}'
@@ -138,10 +136,11 @@ class Parallel_jobs(object):
 						queue,
 						threads))
 
-		def kill(self, reason='error'):
+		def kill(self, time_now, reason=None):
 			'''
 			kill this job.
 			'''
+			reason = 'error ({})'.format(self._status) if reason is None else reason
 			p = sp.Popen('qdel {}'.format(self._id),
 					shell=True,
 					stdout = sp.PIPE,
@@ -150,7 +149,7 @@ class Parallel_jobs(object):
 					.format(reason, 
 						self._id,
 						self._sge_name, 
-						datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
+						time_now.strftime('%Y-%m-%d %H:%M:%S')))
 	
 	##### High level Parallel_jobs API #####
 	def __init__(self, n_jobs, threads, queue='all.q', pe='smp', log_dir='log_SGE'):
@@ -163,7 +162,7 @@ class Parallel_jobs(object):
 	def __repr__(self):
 		return ','.join([ '{}'.format(x) for x in self._jobs_array])
 
-	def submit_all(self, dependence_satisfied_rules):
+	def submit_all(self, dependence_satisfied_rules, time_now):
 		'''
 		dependence unsatisfied jobs array
 		'''
@@ -177,13 +176,13 @@ class Parallel_jobs(object):
 						max(self._threads, threads),
 						self._queue,
 						self._pe,
-						self._log_dir)
+						self._log_dir,
+						time_now)
 
-	def update_all(self):
+	def update_all(self, time_now):
 		'''
 		Update all jobs status.
 		'''
-		time_now = datetime.datetime.now()
 		status_dt = self._qstat()  # id: state
 		#print(status_dt)
 		for idx,job in enumerate(self._jobs_array):  # _Job object
@@ -197,10 +196,11 @@ class Parallel_jobs(object):
 				exit_status = self._qacct_exit_status(job_id)
 				job.set_status(exit_status, time_now)
 
-	def check_error(self):
+	def check_error(self, time_now):
 		'''
-		Kill Eqw, dr jobs and error finished jobs.
-		Return True if error happend.
+		Kill Eqw and dr jobs.
+		Return False if no error.
+		Return status(str) if error happend.
 		'''
 		err_typ = False  # if job Eqw and need kill
 		for idx,job in enumerate(self._jobs_array):
@@ -208,38 +208,41 @@ class Parallel_jobs(object):
 				continue
 			status = job.get_status()
 			if status == 'Eqw' or status == 'dr':  # ongoing/waiting error
-				job.kill(status)  # kill this job
+				job.kill(time_now, status)  # kill this job
 				self._jobs_array[idx] = None  # empty the job
 				err_typ = status
-			if job.is_finished() is False:  # stopped with error
-				#self._jobs_array[idx] = None  # empty the job
-				err_typ = 'exit_error'
 		return err_typ
 
-	def clean_finished(self, finished_jobs):
+	def clean_finished(self, finished_jobs, time_now):
 		'''
-		Clean finished jobs.
+		Clean stopped/finished jobs.
 		'''
 		ongoing_jobs = set()
+		err_typ = False
 		for idx,job in enumerate(self._jobs_array):
 			if job is None:
 				continue
-			status = job.get_status()  # t/qw/r/dr/None/0
-			#print(job)
-			if isinstance(status, int):  # successful finished / exit with error
+			if job.is_finished() is not None:  # successfully finished / stopped with error
+				if job.is_finished() == True:  # stopped with error
+					print('Job finished\tID: {}\tName: {}\tTime: {}'
+						.format(job.get_id(),
+							job.get_sge_name(),
+							time_now.strftime('%Y-%m-%d %H:%M:%S')))
+				elif job.is_finished() == False:  # stopped with error
+					job.kill(time_now)  # kill job
+					err_typ = True  # error
 				finished_jobs.add(job.get_target())  # target is same as makefile context
 				self._jobs_array[idx] = None
 			else:  # None: without info, digital>0: error
 				ongoing_jobs.add(self._jobs_array[idx].get_target())  # target is same as makefile context
-		return finished_jobs, ongoing_jobs
+		return finished_jobs, ongoing_jobs, err_typ
 
-	def deduce_disappeared(self):
+	def deduce_disappeared(self, time_now):
 		'''
 		Deduce disappeared jobs. e.g. User qdel jobs in qw status or qacct can't
 		access the accounting file.
 		Return True if timeout.
 		'''
-		time_now = datetime.datetime.now()
 		job_err = False
 		for idx,job in enumerate(self._jobs_array):  # _Job object
 			if job is None:  # not empty
@@ -254,7 +257,8 @@ class Parallel_jobs(object):
 		'''
 		for job in self._jobs_array:
 			if job is not None:
-				job.kill('auto-kill')
+				job.kill(time_now, 'auto-kill')
+			job = None
 
 	def is_full(self):
 		'''
@@ -499,46 +503,49 @@ if __name__ == "__main__":
 	# loop of SGE job submit
 	while True:
 		# update all jobs status
-		jobs.update_all()
+		time_now = datetime.datetime.now()
+		jobs.update_all(time_now)
 
 		# if Eqw, dr, or exit status error, kill all jobs and exit the moniter program
-		err_typ = jobs.check_error()
-		if err_typ is not False:  # Eqw/dr/error
-			if not (err_typ == 'exit_error' and\
-					auto_kill==False):  # exit error, but not auto-kill rest
-				jobs.kill_all() # kill rest of jobs
-				print('Moniter program Stopped\tTime: {}\tMakefile: {}'\
-						.format(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'), make_file))
-				break
+		if jobs.check_error(time_now) is not False:  # Eqw/dr/error
+			jobs.kill_all() # kill rest of jobs
+			print('Moniter program Stopped\tTime: {}\tMakefile: {}'\
+					.format(time_now.strftime('%Y-%m-%d %H:%M:%S'), make_file))
+			break
 
 		# clean finished jobs and log ongoing jobs
-		finished_jobs, ongoing_jobs =\
-				jobs.clean_finished(finished_jobs)
+		finished_jobs, ongoing_jobs, exit_err =\
+				jobs.clean_finished(finished_jobs, time_now)
+		if exit_err and auto_kill==True:  # exit error, and auto-kill rest
+			jobs.kill_all() # kill rest of jobs
+			print('Moniter program Stopped\tTime: {}\tMakefile: {}'\
+					.format(time_now.strftime('%Y-%m-%d %H:%M:%S'), make_file))
+			break
 		#print(finished_jobs)
 
 		# check if qw qdel or lost job (cannt access accounting file)
-		if jobs.deduce_disappeared() is not False:
+		if jobs.deduce_disappeared(time_now) is not False:
 			jobs.kill_all() # kill rest of jobs
 			print('Moniter program Stopped\tTime: {}\tMakefile: {}'\
-					.format(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'), make_file))
+					.format(time_now.strftime('%Y-%m-%d %H:%M:%S'), make_file))
 			break
 
 		# submit new jobs
 		if not jobs.is_full():
 			dependence_satisfied_rules = mk.get_rules(finished_jobs, ongoing_jobs)
-			jobs.submit_all(dependence_satisfied_rules)
+			jobs.submit_all(dependence_satisfied_rules, time_now)
 
 		# check if all jobs finished	
 		if jobs.is_empty():
 			dependence_unsatisfied_rules = mk.get_remaining_rules(finished_jobs)
 			if len(dependence_unsatisfied_rules) == 0:
 				print('Jobs are all finished\tTime: {}\tMakefile: {}'.\
-						format(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'), make_file))
+						format(time_now.strftime('%Y-%m-%d %H:%M:%S'), make_file))
 			else:
 				print('Jobs stopped with dependence unsatisfied jobs\tTime: {}\tMakefile: {}\t{}'.\
-						format(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+						format(time_now.strftime('%Y-%m-%d %H:%M:%S'),
 							make_file, ','.join(dependence_unsatisfied_rules),))
 			break
 
 		# time interval
-		sleep(5)
+		sleep(1)
