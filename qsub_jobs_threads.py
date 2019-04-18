@@ -47,7 +47,7 @@ class Parallel_jobs(object):
 			self._status = None  # the sge job status
 
 		def __repr__(self):
-			return self._sge_name
+			return '{} {}'.format(self._sge_name, self._status)
 	
 		def set_status(self, status, time_now):  # job status
 			if status is not None:
@@ -85,11 +85,7 @@ class Parallel_jobs(object):
 			'''
 			if isinstance(self._status, int):  # finished
 				if self._status > 0:  # stopped error
-					print('Job error ({})\tID: {}\tName: {}\tTime: {}'
-						.format(self._status,
-							self._id,
-							self._sge_name, 
-							datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
+					self.kill('error ({})'.format(self._status))
 					return False
 				else:  # finished successfully
 					print('Job finished\tID: {}\tName: {}\tTime: {}'
@@ -214,10 +210,10 @@ class Parallel_jobs(object):
 			if status == 'Eqw' or status == 'dr':  # ongoing/waiting error
 				job.kill(status)  # kill this job
 				self._jobs_array[idx] = None  # empty the job
-				err_typ = True
+				err_typ = status
 			if job.is_finished() is False:  # stopped with error
-				self._jobs_array[idx] = None  # empty the job
-				err_typ = True
+				#self._jobs_array[idx] = None  # empty the job
+				err_typ = 'exit_error'
 		return err_typ
 
 	def clean_finished(self, finished_jobs):
@@ -228,8 +224,9 @@ class Parallel_jobs(object):
 		for idx,job in enumerate(self._jobs_array):
 			if job is None:
 				continue
-			status = job.get_status()
-			if status == 0:  # successful finished
+			status = job.get_status()  # t/qw/r/dr/None/0
+			#print(job)
+			if isinstance(status, int):  # successful finished / exit with error
 				finished_jobs.add(job.get_target())  # target is same as makefile context
 				self._jobs_array[idx] = None
 			else:  # None: without info, digital>0: error
@@ -443,6 +440,7 @@ def usage():
 	result += '\t\033[95m-f\033[0m:\tSTR\tPath of makefile.\n'
 	result += '\t-t:\tINT\tNumber of threads(CPUs) using in every job. (default 1)\n'
 	result += '\t-q:\tSTR\tCluster queue name. all.q(default)/high.q/mem.q\n'
+	result += '\t-k:\t   \tSkip error jobs, do not auto-Kill rest jobs.\n'
 	result += '\t-h:\t   \tHelp information.\n'
 	result += '\n\033[95mEaster Egg:\033[0m\n'
 	result += '\tIn the makefile, a rule consists of three parts, <target>, <dependencies>\n'
@@ -457,14 +455,16 @@ def usage():
 
 if __name__ == "__main__":
 	# get paraters
-	n_jobs, threads, make_file, queue = 1, 1, None, 'all.q'  # default
+	n_jobs, threads, make_file, queue, auto_kill = 1, 1, None, 'all.q', True  # default
 	try:
-		opts, args = getopt.getopt(sys.argv[1:], "hj:t:f:q:")
+		opts, args = getopt.getopt(sys.argv[1:], "hkj:t:f:q:")
 	except getopt.GetoptError:
 		sys.exit(usage())
 	for opt, arg in opts:
 		if opt == '-h':
 			sys.exit(usage())
+		elif opt == '-k':
+			auto_kill = False
 		elif opt == '-j':
 			n_jobs = int(arg)
 		elif opt == '-t':
@@ -502,15 +502,19 @@ if __name__ == "__main__":
 		jobs.update_all()
 
 		# if Eqw, dr, or exit status error, kill all jobs and exit the moniter program
-		if jobs.check_error() is not False:  # Eqw/dr/error
-			jobs.kill_all() # kill rest of jobs
-			print('Moniter program Stopped\tTime: {}\tMakefile: {}'\
-					.format(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'), make_file))
-			break
+		err_typ = jobs.check_error()
+		if err_typ is not False:  # Eqw/dr/error
+			if not (err_typ == 'exit_error' and\
+					auto_kill==False):  # exit error, but not auto-kill rest
+				jobs.kill_all() # kill rest of jobs
+				print('Moniter program Stopped\tTime: {}\tMakefile: {}'\
+						.format(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'), make_file))
+				break
 
 		# clean finished jobs and log ongoing jobs
 		finished_jobs, ongoing_jobs =\
 				jobs.clean_finished(finished_jobs)
+		#print(finished_jobs)
 
 		# check if qw qdel or lost job (cannt access accounting file)
 		if jobs.deduce_disappeared() is not False:
