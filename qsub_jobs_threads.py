@@ -16,7 +16,7 @@ No comment (#...) is allowed in command line.
 '''
 
 __author__ = 'ZHOU Ze <dazhouze@link.cuhk.edu.hk>'
-__version__ = '2.0'
+__version__ = '2.1'
 
 import os
 import subprocess as sp
@@ -25,7 +25,7 @@ from time import sleep
 import sys
 import getopt
 
-TIMEOUT = 2*60  # 2min
+TIMEOUT = 60  # 1min
 PE = 'smp'  # pe in SGE
 LOG_DIR = 'log_SGE'  # log directory
 
@@ -444,7 +444,7 @@ def usage():
 	result += '\t\033[95m-f\033[0m:\tSTR\tPath of makefile.\n'
 	result += '\t-t:\tINT\tNumber of threads(CPUs) using in every job. (default 1)\n'
 	result += '\t-q:\tSTR\tCluster queue name. all.q(default)/high.q/mem.q\n'
-	result += '\t-k:\t   \tSkip error jobs, do not auto-Kill rest jobs.\n'
+	result += '\t-k:\t   \tSkip error jobs, do Not auto-Kill rest jobs.\n'
 	result += '\t-h:\t   \tHelp information.\n'
 	result += '\n\033[95mEaster Egg:\033[0m\n'
 	result += '\tIn the makefile, a rule consists of three parts, <target>, <dependencies>\n'
