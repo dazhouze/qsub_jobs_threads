@@ -25,7 +25,7 @@ from time import sleep
 import sys
 import getopt
 
-TIMEOUT = 60  # 1min
+TIMEOUT = 5*60  # 1min
 PE = 'smp'  # pe in SGE
 LOG_DIR = 'log_SGE'  # log directory
 
@@ -391,7 +391,7 @@ class Makefile(object):
 						return False
 		return True
 
-	def get_rules(self, finished_jobs, ongoing_jobs):
+	def get_rules(self, finished_jobs, ongoing_jobs, n_jobs):
 		'''
 		Return an array of rules which already saitisfy the dependence.
 		Each item is a tuple of (target, command, threads).
@@ -414,6 +414,8 @@ class Makefile(object):
 					dependence_satisfied = False
 			if dependence_satisfied:  # all dependence satisfied
 				result.append( (target, command, threads) )
+				if len(result) >= n_jobs:  # return n jobs once
+					break
 		return result
 
 	def get_remaining_rules(self, finished_jobs):
@@ -445,6 +447,7 @@ def usage():
 	result += '\t-t:\tINT\tNumber of threads(CPUs) using in every job. (default 1)\n'
 	result += '\t-q:\tSTR\tCluster queue name. all.q(default)/high.q/mem.q\n'
 	result += '\t-k:\t   \tSkip error jobs, do Not auto-Kill rest jobs.\n'
+	result += '\t-s:\t   \tSeconds of time interval. (default 1 second)\n'
 	result += '\t-h:\t   \tHelp information.\n'
 	result += '\n\033[95mEaster Egg:\033[0m\n'
 	result += '\tIn the makefile, a rule consists of three parts, <target>, <dependencies>\n'
@@ -459,9 +462,9 @@ def usage():
 
 if __name__ == "__main__":
 	# get paraters
-	n_jobs, threads, make_file, queue, auto_kill = 1, 1, None, 'all.q', True  # default
+	n_jobs, threads, make_file, queue, auto_kill, sleep_time = 1, 1, None, 'all.q', True, 1  # default
 	try:
-		opts, args = getopt.getopt(sys.argv[1:], "hkj:t:f:q:")
+		opts, args = getopt.getopt(sys.argv[1:], "hkj:t:f:q:s:")
 	except getopt.GetoptError:
 		sys.exit('\n*** Unknown parameter ***\n{}'.format(usage()))
 	for opt, arg in opts:
@@ -477,6 +480,8 @@ if __name__ == "__main__":
 			make_file = arg
 		elif opt == '-q':
 			queue = arg
+		elif opt == '-s':
+			sleep_time = int(arg)
 
 	# old style paramters
 	if 3 <= len(args) <= 4 and len(opts) == 0:  # old style paraters #jobs #threads makefile (queue)
@@ -530,7 +535,7 @@ if __name__ == "__main__":
 
 		# submit new jobs
 		if not jobs.is_full():
-			dependence_satisfied_rules = mk.get_rules(finished_jobs, ongoing_jobs)
+			dependence_satisfied_rules = mk.get_rules(finished_jobs, ongoing_jobs, n_jobs=n_jobs)
 			jobs.submit_all(dependence_satisfied_rules, time_now)
 
 		# check if all jobs finished	
@@ -546,4 +551,4 @@ if __name__ == "__main__":
 			break
 
 		# time interval
-		sleep(1)
+		sleep(sleep_time)
