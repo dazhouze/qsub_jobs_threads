@@ -108,7 +108,10 @@ class Parallel_jobs(object):
 			stdout_log_dir = stderr_log_dir = os.path.join(os.getcwd(), log_dir)
 	
 			# qsub
-			sge_par = '-v PATH -cwd -pe {} {} -q {}'.format(pe, threads, queue) 
+			sge_par = '-v PATH -cwd -pe {} {} {}'.format(pe,
+					threads,
+					'' if queue is None else '-q {}'.format(queue)
+					) 
 			qsub_command = 'qsub {} -N "{}" -o :"{}" -e :"{}" <<E0F\n{}\nE0F'\
 					.format(sge_par,
 					sge_name,
@@ -133,7 +136,7 @@ class Parallel_jobs(object):
 					.format(self._id,
 						self._sge_name,
 						self._record_time.strftime('%Y-%m-%d %H:%M:%S'),
-						queue,
+						'unassigned' if queue is None else queue,
 						threads))
 
 		def kill(self, time_now, reason=None):
@@ -444,8 +447,8 @@ def usage():
 	result += '\nOptions:\n'
 	result += '\t\033[95m-j\033[0m:\tINT\tNumber of parallel jobs. (default 1)\n'
 	result += '\t\033[95m-f\033[0m:\tSTR\tPath of makefile.\n'
+	result += '\t\033[95m-q\033[0m:\tSTR\tCluster queue name. all.q/high.q/mem.q (default unassigned)\n'
 	result += '\t-t:\tINT\tNumber of threads(CPUs) using in every job. (default 1)\n'
-	result += '\t-q:\tSTR\tCluster queue name. all.q(default)/high.q/mem.q\n'
 	result += '\t-k:\t   \tSkip error jobs, do Not auto-Kill rest jobs.\n'
 	result += '\t-s:\t   \tSeconds of time interval. (default 1 second)\n'
 	result += '\t-h:\t   \tHelp information.\n'
@@ -462,7 +465,7 @@ def usage():
 
 if __name__ == "__main__":
 	# get paraters
-	n_jobs, threads, make_file, queue, auto_kill, sleep_time = 1, 1, None, 'all.q', True, 1  # default
+	n_jobs, threads, make_file, queue, auto_kill, sleep_time = 1, 1, None, None, True, 1  # default
 	try:
 		opts, args = getopt.getopt(sys.argv[1:], "hkj:t:f:q:s:")
 	except getopt.GetoptError:
@@ -483,11 +486,8 @@ if __name__ == "__main__":
 		elif opt == '-s':
 			sleep_time = int(arg)
 
-	# old style paramters
-	if 3 <= len(args) <= 4 and len(opts) == 0:  # old style paraters #jobs #threads makefile (queue)
-		n_jobs, threads, make_file = int(args[0]), int(args[1]), args[2]
-		queue = args[3] if len(args) == 4 else queue
-	elif len(args) > 0 or make_file is None:  # untraced paramters
+	# parameter check
+	if len(args) > 0 or make_file is None:  # untraced paramters
 		sys.exit('\n*** Incorrect parameter ***\n{}'.format(usage()))
 
 	# makefile
