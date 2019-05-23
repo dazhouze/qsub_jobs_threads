@@ -93,7 +93,7 @@ class Parallel_jobs(object):
 					return True
 			return None  # un-finished
 
-		def submit(self, target, command, threads, queue, pe, log_dir, time_now):
+		def submit(self, target, command, threads, queue, mem_gb, pe, log_dir, time_now):
 			'''
 			Submit job.
 			'''
@@ -108,9 +108,11 @@ class Parallel_jobs(object):
 			stdout_log_dir = stderr_log_dir = os.path.join(os.getcwd(), log_dir)
 	
 			# qsub
-			sge_par = '-v PATH -cwd -pe {} {} {}'.format(pe,
+			sge_par = '-v PATH -cwd -pe {} {} {} {}'.format(
+					pe,
 					threads,
-					'' if queue is None else '-q {}'.format(queue)
+					'' if queue is None else '-q {}'.format(queue),
+					'' if mem_gb is None else '-l vf={}G'.format(mem_gb),
 					) 
 			qsub_command = 'qsub {} -N "{}" -o :"{}" -e :"{}" <<E0F\n{}\nE0F'\
 					.format(sge_par,
@@ -132,12 +134,14 @@ class Parallel_jobs(object):
 			self._record_time = time_now  # the submit time
 			self._id = job_id  # the sge given id
 			self._status = 't'  # the sge job status
-			print('Job submit\tID: {}\tName: {}\tTime: {}\tQueue: {}\tCPU: {}'
+			print('Job submit\tID: {}\tName: {}\tTime: {}\tCPU: {}{}{}'
 					.format(self._id,
 						self._sge_name,
 						self._record_time.strftime('%Y-%m-%d %H:%M:%S'),
-						'unassigned' if queue is None else queue,
-						threads))
+						threads,
+						'\tMem: {}'.format(mem_gb) if mem_gb is not None else '',
+						'\tQueue: {}'.format(queue) if queue is not None else '',
+						))
 
 		def kill(self, time_now, reason=None):
 			'''
@@ -155,10 +159,11 @@ class Parallel_jobs(object):
 						time_now.strftime('%Y-%m-%d %H:%M:%S')))
 	
 	##### High level Parallel_jobs API #####
-	def __init__(self, n_jobs, threads, queue='all.q', pe='smp', log_dir='log_SGE'):
+	def __init__(self, n_jobs, threads, queue=None, mem_gb=None, pe='smp', log_dir='log_SGE'):
 		self._jobs_array = [None for n in range(n_jobs)]  # jobs array for parallel jobs
 		self._threads = threads
 		self._queue = queue
+		self._mem_gb = mem_gb
 		self._pe = pe
 		self._log_dir = log_dir
 
@@ -178,6 +183,7 @@ class Parallel_jobs(object):
 						command,
 						max(self._threads, threads),
 						self._queue,
+						self._mem_gb,
 						self._pe,
 						self._log_dir,
 						time_now)
@@ -449,6 +455,7 @@ def usage():
 	result += '\t\033[95m-f\033[0m:\tSTR\tPath of makefile.\n'
 	result += '\t\033[95m-q\033[0m:\tSTR\tCluster queue name. all.q/high.q/mem.q (default unassigned)\n'
 	result += '\t-t:\tINT\tNumber of threads(CPUs) using in every job. (default 1)\n'
+	result += '\t-m:\tFloat\tNumber of GB memory intend to use for every job. (default unassigned)\n'
 	result += '\t-k:\t   \tSkip error jobs, do Not auto-Kill rest jobs.\n'
 	result += '\t-s:\t   \tSeconds of time interval. (default 1 second)\n'
 	result += '\t-h:\t   \tHelp information.\n'
@@ -465,9 +472,10 @@ def usage():
 
 if __name__ == "__main__":
 	# get paraters
-	n_jobs, threads, make_file, queue, auto_kill, sleep_time = 1, 1, None, None, True, 1  # default
+	n_jobs, threads, make_file, queue, auto_kill, sleep_time, mem_gb =\
+			1, 1, None, None, True, 1, None  # default
 	try:
-		opts, args = getopt.getopt(sys.argv[1:], "hkj:t:f:q:s:")
+		opts, args = getopt.getopt(sys.argv[1:], "hkj:t:f:q:s:m:")
 	except getopt.GetoptError:
 		sys.exit('\n*** Unknown parameter ***\n{}'.format(usage()))
 	for opt, arg in opts:
@@ -485,6 +493,8 @@ if __name__ == "__main__":
 			queue = arg
 		elif opt == '-s':
 			sleep_time = int(arg)
+		elif opt == '-m':
+			mem_gb = float(arg)
 
 	# parameter check
 	if len(args) > 0 or make_file is None:  # untraced paramters
@@ -500,7 +510,7 @@ if __name__ == "__main__":
 
 	# init job array
 	mk = Makefile(make_file)  # make file
-	jobs = Parallel_jobs(n_jobs, threads, queue, pe=PE, log_dir=LOG_DIR)
+	jobs = Parallel_jobs(n_jobs, threads, queue, mem_gb, pe=PE, log_dir=LOG_DIR)
 	finished_jobs = set()  # store finished job name (target)
 
 	# loop of SGE job submit
