@@ -176,7 +176,7 @@ class Parallel_jobs(object):
 		'''
 		for idx in range(len(self._jobs_array)):
 			if self._jobs_array[idx] is None and len(dependence_satisfied_rules) > 0:
-				name, command, threads = dependence_satisfied_rules.pop()
+				name, command, threads = dependence_satisfied_rules.pop(0)
 				#print(name, command, threads)
 				self._jobs_array[idx] = self._Job()  # init
 				self._jobs_array[idx].submit(name,
