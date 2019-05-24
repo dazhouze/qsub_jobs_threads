@@ -1,6 +1,7 @@
 # qsub_jobs_threads
 ## Makefile as flowflow control language
-The makefile simply contains rules and a rule consists of three parts: <target>, <dependencies> and <commands>. 
+The makefile simply contains rules and a rule consists of three parts: target, (dependencies) and commands.
+e.g.
 ```
 soap_align: depend.fq
   soap -p 20 ...other options...
