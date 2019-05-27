@@ -1,4 +1,13 @@
 # qsub_jobs_threads
+## Makefile as workflow control language
+The makefile simply contains rules and a rule consists of three parts: target, (dependencies) and commands.
+e.g.
+```
+soap_align: depend.fq
+  soap -p 20 ...other options...
+```
+
+## Features
 - Read Makefile and submit parallel multi-threads jobs to Sun Grid Engine (SGE).
 - If user qdel a job in 'qw' state, a period of time(TIMEOUT) later the program will stop.
 - Jobs will be submitted in -pe smp(PE), and log directory will be 'log_SGE'(LOG_DIR).
