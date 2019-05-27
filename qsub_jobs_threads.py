@@ -375,7 +375,7 @@ class Makefile(object):
 			threads = 1  # min thread is 1
 		info = info[0].split(':')
 		target, depend_str = info[0], info[1]
-		target, depend_ar = target.replace(' ', ''), depend_str.split()
+		target, depend_ar = target.replace(' ', '').replace('/', '.'), depend_str.split()
 		if target == 'all' or target == 'ALL':  # continue
 			return True
 		# in case of mulit-line command, no comment is allowed in command
@@ -453,7 +453,7 @@ def usage():
 	result += '\nOptions:\n'
 	result += '\t\033[95m-j\033[0m:\tINT\tNumber of parallel jobs. (default 1)\n'
 	result += '\t\033[95m-f\033[0m:\tSTR\tPath of makefile.\n'
-	result += '\t\033[95m-q\033[0m:\tSTR\tCluster queue name. all.q/high.q/mem.q (default unassigned)\n'
+	result += '\t\033[95m-q\033[0m:\tSTR\tCluster queue name. all.q/high.q/mem.q/all.q@node16 (default unassigned)\n'
 	result += '\t-t:\tINT\tNumber of threads(CPUs) using in every job. (default 1)\n'
 	result += '\t-m:\tFloat\tNumber of GB memory intend to use for every job. (default unassigned)\n'
 	result += '\t-k:\t   \tSkip error jobs, do Not auto-Kill rest jobs.\n'
