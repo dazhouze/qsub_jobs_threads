@@ -97,12 +97,10 @@ class Parallel_jobs(object):
 			'''
 			Submit job.
 			'''
+			sge_name = target  # name for SGE, qsub -N
 			if '/' in target:  # path as name (target)
-				sge_name = target  # name for SGE, qsub -N
 				sge_name = sge_name[:-1] if sge_name[-1] == '/' else sge_name  # in case of /
-				sge_name = sge_name.split('/')[-1]  # use basename as name (target)
-			else:
-				sge_name = target  # name for SGE, qsub -N
+				sge_name = sge_name.replace('/', '.')  # use basename as name (target)
 			if sge_name[0].isdigit():  # sge NOT allow -N start with digital
 				sge_name = 'Job_{}'.format(sge_name)
 			stdout_log_dir = stderr_log_dir = os.path.join(os.getcwd(), log_dir)
@@ -375,7 +373,7 @@ class Makefile(object):
 			threads = 1  # min thread is 1
 		info = info[0].split(':')
 		target, depend_str = info[0], info[1]
-		target, depend_ar = target.replace(' ', '').replace('/', '.'), depend_str.split()
+		target, depend_ar = target.replace(' ', ''), depend_str.split()
 		if target == 'all' or target == 'ALL':  # continue
 			return True
 		# in case of mulit-line command, no comment is allowed in command
