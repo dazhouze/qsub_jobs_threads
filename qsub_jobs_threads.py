@@ -550,7 +550,7 @@ if __name__ == "__main__":
 		if jobs.is_empty():
 			dependence_unsatisfied_rules = mk.get_remaining_rules(finished_jobs)
 			if len(dependence_unsatisfied_rules) == 0:
-				print('Jobs are all finished\tTime: {}\tMakefile: {}'.\
+				print('Jobs were all finished\tTime: {}\tMakefile: {}'.\
 						format(time_now.strftime('%Y-%m-%d %H:%M:%S'), make_file))
 			else:
 				print('Jobs stopped with dependence unsatisfied jobs\tTime: {}\tMakefile: {}\t{}'.\
