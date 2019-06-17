@@ -16,7 +16,7 @@ No comment (#...) is allowed in command line.
 '''
 
 __author__ = 'ZHOU Ze <dazhouze@link.cuhk.edu.hk>'
-__version__ = '2.2'
+__version__ = '2.3'
 
 import os
 import subprocess as sp
@@ -33,7 +33,6 @@ class Parallel_jobs(object):
 	'''
 	A batch of jobs (_Job).
 	'''
-
 	##### Nested Job. #####
 	class _Job(object):
 		'''
@@ -374,7 +373,10 @@ class Makefile(object):
 		info = info[0].split(':')
 		target, depend_str = info[0], info[1]
 		target, depend_ar = target.replace(' ', ''), depend_str.split()
-		if target == 'all' or target == 'ALL':  # continue
+		if target == 'all' or target == 'ALL':  # all:, check dependence
+			if len(set(depend_ar)) != len(depend_ar):  # repeat
+				sys.exit('\n*** Repeat target in makefile ***\n{}\n'.
+						format('\n'.join(set([x for x in depend_ar if depend_ar.count(x) > 1]))))
 			return True
 		# in case of mulit-line command, no comment is allowed in command
 		command_str = 'true ; ' +  ' ; '.join([l.strip() for l in buff_line[1:]])
@@ -384,8 +386,7 @@ class Makefile(object):
 		# union bash and make varible. for $, make: $$, qsub:\$, sh: $
 		command_str = command_str.replace('$$', '$').replace('$', '\$')  # makefile variable to bash variable
 		self._rules.setdefault(target, self._Rule(depend_ar, command_str, threads))
-		return True
-
+		
 	def _file_dir_exit(self, f_d):
 		'''
 		Retrun if file or dir exits.
