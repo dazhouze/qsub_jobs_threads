@@ -16,7 +16,7 @@ No comment (#...) is allowed in command line.
 '''
 
 __author__ = 'ZHOU Ze <dazhouze@link.cuhk.edu.hk>'
-__version__ = '2.3'
+__version__ = '2.4'
 
 import os
 import subprocess as sp
@@ -108,7 +108,7 @@ class Parallel_jobs(object):
 			sge_par = '-v PATH -cwd -pe {} {} {} {}'.format(
 					pe,
 					threads,
-					'' if queue is None else '-q {}'.format(queue),
+					'' if queue is None else '-q {}'.format(' -q '.join(queue)),
 					'' if mem_gb is None else '-l vf={}G'.format(mem_gb),
 					) 
 			qsub_command = 'qsub {} -N "{}" -o :"{}" -e :"{}" <<E0F\n{}\nE0F'\
@@ -137,7 +137,7 @@ class Parallel_jobs(object):
 						self._record_time.strftime('%Y-%m-%d %H:%M:%S'),
 						threads,
 						'\tMem: {}'.format(mem_gb) if mem_gb is not None else '',
-						'\tQueue: {}'.format(queue) if queue is not None else '',
+						'\tQueue: {}'.format(', '.join(queue)) if queue is not None else '',
 						))
 
 		def kill(self, time_now, reason=None):
@@ -452,7 +452,7 @@ def usage():
 	result += '\nOptions:\n'
 	result += '\t\033[95m-j\033[0m:\tINT\tNumber of parallel jobs. (default 1)\n'
 	result += '\t\033[95m-f\033[0m:\tSTR\tPath of makefile.\n'
-	result += '\t\033[95m-q\033[0m:\tSTR\tCluster queue name. all.q/high.q/mem.q/all.q@node16 (default unassigned)\n'
+	result += '\t\033[95m-q\033[0m:\tSTR\tQueue, server or queue@server. For multi queue/server, use "," link them.\n'
 	result += '\t-t:\tINT\tNumber of threads(CPUs) using in every job. (default 1)\n'
 	result += '\t-m:\tFLOAT\tNumber of GB memory intend to use for every job. (default unassigned)\n'
 	result += '\t-s:\tINT\tSeconds of time interval. (default 1 second)\n'
@@ -489,7 +489,7 @@ if __name__ == "__main__":
 		elif opt == '-f':
 			make_file = arg
 		elif opt == '-q':
-			queue = arg
+			queue = arg.split(',')
 		elif opt == '-s':
 			sleep_time = int(arg)
 		elif opt == '-m':
