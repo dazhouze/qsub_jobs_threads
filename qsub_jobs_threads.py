@@ -16,7 +16,7 @@ No comment (#...) is allowed in command line.
 '''
 
 __author__ = 'ZHOU Ze <dazhouze@link.cuhk.edu.hk>'
-__version__ = '2.4'
+__version__ = '2.5'
 
 import os
 import subprocess as sp
@@ -446,18 +446,16 @@ def usage():
 	result += 'Version: {}\n'.format(__version__)
 	result += 'Contact: {}\n'.format(__author__)
 	result += '\nUsage:\n'
-	result += '\tqsub_jobs_threads <\033[95m-j\033[0m #jobs> <\033[95m-f\033[0m makefile>\n'
-	result += '\tor\n'
-	result += '\tqsub_jobs_threads <#jobs> <#threads> <makefile> [Queue]\n'
+	result += '\tqsub_jobs_threads [options] \033[95m-f\033[0m <makefile>\n'
 	result += '\nOptions:\n'
-	result += '\t\033[95m-j\033[0m:\tINT\tNumber of parallel jobs. (default 1)\n'
-	result += '\t\033[95m-f\033[0m:\tSTR\tPath of makefile.\n'
-	result += '\t\033[95m-q\033[0m:\tSTR\tQueue, server or queue@server. For multi queue/server, use "," link them.\n'
-	result += '\t-t:\tINT\tNumber of threads(CPUs) using in every job. (default 1)\n'
-	result += '\t-m:\tFLOAT\tNumber of GB memory intend to use for every job. (default unassigned)\n'
-	result += '\t-s:\tINT\tSeconds of time interval. (default 1 second)\n'
-	result += '\t-k:\t   \tSkip error jobs, do Not auto-Kill rest jobs.\n'
-	result += '\t-h:\t   \tHelp information.\n'
+	#result += '\t\033[95m-f\033[0m: STR        Path of makefile.\n'
+	result += '\t\033[95m-j\033[0m: INT        Number of parallel jobs. (default 1)\n'
+	result += '\t\033[95m-q\033[0m: STR[,STR]  Queue, server or queue@server. (default unassigned)\n'
+	result += '\t-t: INT        Number of threads(CPUs) used by each job. (default 1)\n'
+	result += '\t-m: FLOAT      Number of GB memory uesed by each job. (default unassigned)\n'
+	result += '\t-s: INT        Seconds of time interval between qstat querying. (default 1 second)\n'
+	result += '\t-k:            Skip error jobs and continue rest jobs.\n'
+	result += '\t-h:            Help information.\n'
 	result += '\n\033[95mEaster Egg:\033[0m\n'
 	result += '\tIn the makefile, a rule consists of three parts, <target>, <dependencies>\n'
 	result += '\tand <commands>. You can specify the number of threads(INT) using in a\n'
@@ -551,10 +549,10 @@ if __name__ == "__main__":
 		if jobs.is_empty():
 			dependence_unsatisfied_rules = mk.get_remaining_rules(finished_jobs)
 			if len(dependence_unsatisfied_rules) == 0:
-				print('Jobs were all finished\tTime: {}\tMakefile: {}'.\
+				print('Jobs all finished\tTime: {}\tMakefile: {}'.\
 						format(time_now.strftime('%Y-%m-%d %H:%M:%S'), make_file))
 			else:
-				print('Jobs stopped with dependence unsatisfied jobs\tTime: {}\tMakefile: {}\t{}'.\
+				print('Jobs stopped with dependence unsatisfied\tTime: {}\tMakefile: {}\t{}'.\
 						format(time_now.strftime('%Y-%m-%d %H:%M:%S'),
 							make_file, ','.join(dependence_unsatisfied_rules),))
 			break
