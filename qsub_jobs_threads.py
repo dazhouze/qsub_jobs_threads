@@ -452,7 +452,7 @@ def usage():
 	result += '\t\033[95m-j\033[0m: INT        Number of parallel jobs. (default 1)\n'
 	result += '\t\033[95m-q\033[0m: STR[,STR]  Queue, server or queue@server. (default unassigned)\n'
 	result += '\t-t: INT        Number of threads(CPUs) used by each job. (default 1)\n'
-	result += '\t-m: FLOAT      Number of GB memory uesed by each job. (default unassigned)\n'
+	result += '\t-m: FLOAT      Amount of GB memory uesed by each job. (default unassigned)\n'
 	result += '\t-s: INT        Seconds of time interval between qstat querying. (default 1 second)\n'
 	result += '\t-k:            Skip error jobs and continue rest jobs.\n'
 	result += '\t-h:            Help information.\n'
@@ -549,7 +549,7 @@ if __name__ == "__main__":
 		if jobs.is_empty():
 			dependence_unsatisfied_rules = mk.get_remaining_rules(finished_jobs)
 			if len(dependence_unsatisfied_rules) == 0:
-				print('Jobs all finished\tTime: {}\tMakefile: {}'.\
+				print('Jobs all finish\tTime: {}\tMakefile: {}'.\
 						format(time_now.strftime('%Y-%m-%d %H:%M:%S'), make_file))
 			else:
 				print('Jobs stopped with dependence unsatisfied\tTime: {}\tMakefile: {}\t{}'.\
