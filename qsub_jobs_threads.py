@@ -349,9 +349,9 @@ class Makefile(object):
 		buff_line = []
 		with open(make_file, 'r') as f:
 			for line in f:
-				if line.replace(' ','').replace('\t','') == '\n' or\
-					line.replace(' ','').replace('\t','')[0] == '#':
-						continue
+				line_rm_blank = line.replace(' ','').replace('\t','')
+				if line_rm_blank == '\n' or (len(line_rm_blank)>0 and line_rm_blank[0]=='#'):
+					continue
 				if line[0] != '\t' and len(buff_line) > 0: # analysis makefile
 					self._buff2rule(buff_line)
 					buff_line = []
