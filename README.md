@@ -30,7 +30,7 @@ export PATH=dir/of/qsub_jobs_threads:$PATH
 
 ## Run:
 ```
-qsub_jobs_threads -j #jobs -t #threads -f makefile -q queue
+qsub_jobs_threads  -f makefile -j #paralell_jobs -q queue.q
 # More options will be shown in terminal using:
 qsub_jobs_threads -h
 ```
