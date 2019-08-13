@@ -16,7 +16,7 @@ No comment (#...) is allowed in command line.
 '''
 
 __author__ = 'ZHOU Ze <dazhouze@link.cuhk.edu.hk>'
-__version__ = '2.5'
+__version__ = '2.6'
 
 import os
 import subprocess as sp
@@ -213,7 +213,7 @@ class Parallel_jobs(object):
 			if job is None:
 				continue
 			status = job.get_status()
-			if status == 'Eqw' or status == 'dr':  # ongoing/waiting error
+			if status == 'Eqw' or status == 'dr' or status == 'dt':  # ongoing/waiting error
 				job.kill(time_now, status)  # kill this job
 				self._jobs_array[idx] = None  # empty the job
 				err_typ = status
@@ -506,6 +506,8 @@ if __name__ == "__main__":
 		os.makedirs(LOG_DIR)
 
 	# init job array
+	print('Jobs parse\tTime: {}\tMakefile: {}'.\
+			format(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),make_file,))
 	mk = Makefile(make_file)  # make file
 	jobs = Parallel_jobs(n_jobs, threads, queue, mem_gb, pe=PE, log_dir=LOG_DIR)
 	finished_jobs = set()  # store finished job name (target)
