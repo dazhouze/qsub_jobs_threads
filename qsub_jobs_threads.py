@@ -16,7 +16,7 @@ No comment (#...) is allowed in command line.
 '''
 
 __author__ = 'ZHOU Ze <dazhouze@link.cuhk.edu.hk>'
-__version__ = '2.6'
+__version__ = '2.7'
 
 import os
 import subprocess as sp
@@ -105,7 +105,7 @@ class Parallel_jobs(object):
 			stdout_log_dir = stderr_log_dir = os.path.join(os.getcwd(), log_dir)
 	
 			# qsub
-			sge_par = '-v PATH -cwd -pe {} {} {} {}'.format(
+			sge_par = '-V -cwd -pe {} {} {} {}'.format(
 					pe,
 					threads,
 					'' if queue is None else '-q {}'.format(' -q '.join(queue)),
@@ -219,7 +219,7 @@ class Parallel_jobs(object):
 				err_typ = status
 		return err_typ
 
-	def clean_finished(self, finished_jobs, time_now):
+	def clean_finished(self, finished_jobs, tot_n_rules, time_now):
 		'''
 		Clean stopped/finished jobs.
 		'''
@@ -230,10 +230,12 @@ class Parallel_jobs(object):
 				continue
 			if job.is_finished() is not None:  # successfully finished / stopped with error
 				if job.is_finished() == True:  # stopped with error
-					print('Job finished\tID: {}\tName: {}\tTime: {}'
+					print('Job finished\tID: {}\tName: {}\tTime: {}\t{:.1%}'
 						.format(job.get_id(),
 							job.get_sge_name(),
-							time_now.strftime('%Y-%m-%d %H:%M:%S')))
+							time_now.strftime('%Y-%m-%d %H:%M:%S'),
+							(len(finished_jobs)+1)/tot_n_rules,
+							))
 				elif job.is_finished() == False:  # stopped with error
 					job.kill(time_now)  # kill job
 					err_typ = True  # error
@@ -437,6 +439,12 @@ class Makefile(object):
 			result.append(target)
 		return result
 
+	def get_rules_num(self):
+		'''
+		Return rules number.
+		'''
+		return  len(self._rules)
+
 def usage():
 	'''
 	Print program usage information.
@@ -470,7 +478,7 @@ def usage():
 if __name__ == "__main__":
 	# get paraters
 	n_jobs, threads, make_file, queue, auto_kill, sleep_time, mem_gb =\
-			1, 1, None, None, True, 1, None  # default
+			1, 1, None, None, True, 5, None  # default
 	try:
 		opts, args = getopt.getopt(sys.argv[1:], "hkj:t:f:q:s:m:")
 	except getopt.GetoptError:
@@ -509,6 +517,7 @@ if __name__ == "__main__":
 	print('Jobs parse\tTime: {}\tMakefile: {}'.\
 			format(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),make_file,))
 	mk = Makefile(make_file)  # make file
+	tot_n_rules = mk.get_rules_num()
 	jobs = Parallel_jobs(n_jobs, threads, queue, mem_gb, pe=PE, log_dir=LOG_DIR)
 	finished_jobs = set()  # store finished job name (target)
 
@@ -527,7 +536,7 @@ if __name__ == "__main__":
 
 		# clean finished jobs and log ongoing jobs
 		finished_jobs, ongoing_jobs, exit_err =\
-				jobs.clean_finished(finished_jobs, time_now)
+				jobs.clean_finished(finished_jobs, tot_n_rules, time_now)
 		if exit_err and auto_kill==True:  # exit error, and auto-kill rest
 			jobs.kill_all(time_now) # kill rest of jobs
 			print('Moniter program Stopped\tTime: {}\tMakefile: {}'\
