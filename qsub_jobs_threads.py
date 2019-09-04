@@ -16,7 +16,7 @@ No comment (#...) is allowed in command line.
 '''
 
 __author__ = 'ZHOU Ze <dazhouze@link.cuhk.edu.hk>'
-__version__ = '2.7'
+__version__ = '2.8'
 
 import os
 import subprocess as sp
@@ -24,6 +24,7 @@ import datetime
 from time import sleep
 import sys
 import getopt
+from random import shuffle as rand_shuf
 
 TIMEOUT = 5*60  # 1min
 PE = 'smp'  # pe in SGE
@@ -167,10 +168,12 @@ class Parallel_jobs(object):
 	def __repr__(self):
 		return ','.join([ '{}'.format(x) for x in self._jobs_array])
 
-	def submit_all(self, dependence_satisfied_rules, time_now):
+	def submit_all(self, dependence_satisfied_rules, time_now, random_submit=False):
 		'''
 		dependence unsatisfied jobs array
 		'''
+		if random_submit:
+			rand_shuf(dependence_satisfied_rules)
 		for idx in range(len(self._jobs_array)):
 			if self._jobs_array[idx] is None and len(dependence_satisfied_rules) > 0:
 				name, command, threads = dependence_satisfied_rules.pop(0)
@@ -450,7 +453,7 @@ def usage():
 	Print program usage information.
 	'''
 	result = ''
-	result += '\nProgram: {} (Parallel multi-threads jobs qsub)\n'.format(__file__)
+	result += '\nProgram: {} (qsub parallel multi-threads jobs)\n'.format(__file__)
 	result += 'Version: {}\n'.format(__version__)
 	result += 'Contact: {}\n'.format(__author__)
 	result += '\nUsage:\n'
@@ -462,6 +465,7 @@ def usage():
 	result += '\t-t: INT        Number of threads(CPUs) used by each job. (default 1)\n'
 	result += '\t-m: FLOAT      Amount of GB memory uesed by each job. (default unassigned)\n'
 	result += '\t-s: INT        Seconds of time interval between qstat querying. (default 1 second)\n'
+	result += '\t-r:            Submit jobs in random order. (default makefile order)\n'
 	result += '\t-k:            Skip error jobs and continue rest jobs.\n'
 	result += '\t-h:            Help information.\n'
 	result += '\n\033[95mEaster Egg:\033[0m\n'
@@ -477,10 +481,10 @@ def usage():
 
 if __name__ == "__main__":
 	# get paraters
-	n_jobs, threads, make_file, queue, auto_kill, sleep_time, mem_gb =\
-			1, 1, None, None, True, 5, None  # default
+	n_jobs, threads, make_file, queue, auto_kill, sleep_time, mem_gb, random_submit =\
+			1, 1, None, None, True, 5, None, False  # default
 	try:
-		opts, args = getopt.getopt(sys.argv[1:], "hkj:t:f:q:s:m:")
+		opts, args = getopt.getopt(sys.argv[1:], "hkrj:t:f:q:s:m:")
 	except getopt.GetoptError:
 		sys.exit('\n*** Unknown parameter ***\n{}'.format(usage()))
 	for opt, arg in opts:
@@ -488,6 +492,8 @@ if __name__ == "__main__":
 			sys.exit(usage())
 		elif opt == '-k':
 			auto_kill = False
+		elif opt == '-r':
+			random_submit = True
 		elif opt == '-j':
 			n_jobs = int(arg)
 		elif opt == '-t':
@@ -554,7 +560,7 @@ if __name__ == "__main__":
 		# submit new jobs
 		if not jobs.is_full():
 			dependence_satisfied_rules = mk.get_rules(finished_jobs, ongoing_jobs, n_jobs=n_jobs)
-			jobs.submit_all(dependence_satisfied_rules, time_now)
+			jobs.submit_all(dependence_satisfied_rules, time_now, random_submit)
 
 		# check if all jobs finished	
 		if jobs.is_empty():
