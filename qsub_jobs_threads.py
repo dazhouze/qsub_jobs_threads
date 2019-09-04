@@ -453,7 +453,7 @@ def usage():
 	Print program usage information.
 	'''
 	result = ''
-	result += '\nProgram: {} (qsub parallel multi-threads jobs)\n'.format(__file__)
+	result += '\nProgram: {} (qsub parallel jobs with multi-threads)\n'.format(__file__)
 	result += 'Version: {}\n'.format(__version__)
 	result += 'Contact: {}\n'.format(__author__)
 	result += '\nUsage:\n'
@@ -464,9 +464,9 @@ def usage():
 	result += '\t\033[95m-q\033[0m: STR[,STR]  Queue and/or queue@server. (default unassigned)\n'
 	result += '\t-t: INT        Number of threads(CPUs) used by each job. (default 1)\n'
 	result += '\t-m: FLOAT      Amount of GB memory uesed by each job. (default unassigned)\n'
-	result += '\t-s: INT        Seconds of time interval between qstat querying. (default 1 second)\n'
-	result += '\t-r:            Submit jobs in random order. (default makefile order)\n'
-	result += '\t-k:            Skip error jobs and continue rest jobs.\n'
+	result += '\t-s: INT        Time interval (s) between qstat querying. (default 1 second)\n'
+	result += '\t-r:            Submit jobs in random order. (default makefile context order)\n'
+	result += '\t-k:            Skip error jobs and continue rest jobs. (default auto-kill rest jobs)\n'
 	result += '\t-h:            Help information.\n'
 	result += '\n\033[95mEaster Egg:\033[0m\n'
 	result += '\tIn the makefile, a rule consists of three parts, <target>, <dependencies>\n'
