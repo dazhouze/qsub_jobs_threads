@@ -16,7 +16,7 @@ No comment (#...) is allowed in command line.
 '''
 
 __author__ = 'ZHOU Ze <dazhouze@link.cuhk.edu.hk>'
-__version__ = '2.8'
+__version__ = '2.9'
 
 import os
 import subprocess as sp
@@ -482,7 +482,7 @@ def usage():
 if __name__ == "__main__":
 	# get paraters
 	n_jobs, threads, make_file, queue, auto_kill, sleep_time, mem_gb, random_submit =\
-			1, 1, None, None, True, 5, None, False  # default
+			1, 1, None, None, True, 1, None, False  # default
 	try:
 		opts, args = getopt.getopt(sys.argv[1:], "hkrj:t:f:q:s:m:")
 	except getopt.GetoptError:
@@ -526,6 +526,8 @@ if __name__ == "__main__":
 	tot_n_rules = mk.get_rules_num()
 	jobs = Parallel_jobs(n_jobs, threads, queue, mem_gb, pe=PE, log_dir=LOG_DIR)
 	finished_jobs = set()  # store finished job name (target)
+	print('Jobs summary\ttotal:{}\tparallel run:{}'.\
+			format(tot_n_rules, n_jobs))
 
 	# loop of SGE job submit
 	while True:
@@ -566,12 +568,14 @@ if __name__ == "__main__":
 		if jobs.is_empty():
 			dependence_unsatisfied_rules = mk.get_remaining_rules(finished_jobs)
 			if len(dependence_unsatisfied_rules) == 0:
-				print('Jobs all finish\tTime: {}\tMakefile: {}'.\
+				print('Jobs all finished\tTime: {}\tMakefile: {}'.\
 						format(time_now.strftime('%Y-%m-%d %H:%M:%S'), make_file))
 			else:
-				print('Jobs stopped with dependence unsatisfied\tTime: {}\tMakefile: {}\t{}'.\
-						format(time_now.strftime('%Y-%m-%d %H:%M:%S'),
-							make_file, ','.join(dependence_unsatisfied_rules),))
+				print('Jobs stopped with dependence unsatisfied({})\tTime: {}\tMakefile: {}\t{}'.\
+						format(len(dependence_unsatisfied_rules),
+							time_now.strftime('%Y-%m-%d %H:%M:%S'),
+							make_file,
+							','.join(dependence_unsatisfied_rules),))
 			break
 
 		# time interval
