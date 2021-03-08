@@ -16,7 +16,7 @@ No comment (#...) is allowed in command line.
 '''
 
 __author__ = 'ZHOU Ze <dazhouze@link.cuhk.edu.hk>'
-__version__ = '2.9'
+__version__ = '2.10'
 
 import os
 import subprocess as sp
@@ -26,7 +26,7 @@ import sys
 import getopt
 from random import shuffle as rand_shuf
 
-TIMEOUT = 5*60  # 1min
+TIMEOUT = 5*60  # 5 min
 PE = 'smp'  # pe in SGE
 LOG_DIR = 'log_SGE'  # log directory
 
@@ -48,7 +48,7 @@ class Parallel_jobs(object):
 
 		def __repr__(self):
 			return '{} {}'.format(self._sge_name, self._status)
-	
+
 		def set_status(self, status, time_now):  # job status
 			if status is not None:
 				self._status = status
@@ -104,7 +104,7 @@ class Parallel_jobs(object):
 			if sge_name[0].isdigit():  # sge NOT allow -N start with digital
 				sge_name = 'Job_{}'.format(sge_name)
 			stdout_log_dir = stderr_log_dir = os.path.join(os.getcwd(), log_dir)
-	
+
 			# qsub
 			sge_par = '-V -cwd -pe {} {} {} {}'.format(
 					pe,
@@ -137,8 +137,8 @@ class Parallel_jobs(object):
 						self._sge_name,
 						self._record_time.strftime('%Y-%m-%d %H:%M:%S'),
 						threads,
-						'\tMem: {}'.format(mem_gb) if mem_gb is not None else '',
-						'\tQueue: {}'.format(', '.join(queue)) if queue is not None else '',
+						'\tMem: {}GB'.format(mem_gb) if mem_gb is not None else '',
+						'\tQueue: {}'.format(','.join(queue)) if queue is not None else '',
 						))
 
 		def kill(self, time_now, reason=None):
@@ -151,11 +151,11 @@ class Parallel_jobs(object):
 					stdout = sp.PIPE,
 					stderr = sp.PIPE)
 			print('Job {}\tID: {}\tName: {}\tTime: {}'
-					.format(reason, 
+					.format(reason,
 						self._id,
-						self._sge_name, 
+						self._sge_name,
 						time_now.strftime('%Y-%m-%d %H:%M:%S')))
-	
+
 	##### High level Parallel_jobs API #####
 	def __init__(self, n_jobs, threads, queue=None, mem_gb=None, pe='smp', log_dir='log_SGE'):
 		self._jobs_array = [None for n in range(n_jobs)]  # jobs array for parallel jobs
@@ -309,7 +309,7 @@ class Parallel_jobs(object):
 			job_id, state = info
 			result.setdefault(job_id, state)
 		return result
-	
+
 	def _qacct_exit_status(self, job_id):
 		'''
 		Finished job status
@@ -391,7 +391,7 @@ class Makefile(object):
 		# union bash and make varible. for $, make: $$, qsub:\$, sh: $
 		command_str = command_str.replace('$$', '$').replace('$', '\$')  # makefile variable to bash variable
 		self._rules.setdefault(target, self._Rule(depend_ar, command_str, threads))
-		
+
 	def _file_dir_exit(self, f_d):
 		'''
 		Retrun if file or dir exits.
@@ -460,12 +460,12 @@ def usage():
 	result += '\tqsub_jobs_threads [options] \033[95m-f\033[0m <makefile>\n'
 	result += '\nOptions:\n'
 	result += '\t\033[95m-f\033[0m: STR        Path of makefile.\n'
-	result += '\t\033[95m-j\033[0m: INT        Number of parallel jobs. (default 1)\n'
-	result += '\t\033[95m-q\033[0m: STR[,STR]  Queue and/or queue@server. (default unassigned)\n'
-	result += '\t-t: INT        Number of threads(CPUs) used by each job. (default 1)\n'
-	result += '\t-m: FLOAT      Amount of GB memory uesed by each job. (default unassigned)\n'
-	result += '\t-s: INT        Time interval (s) between qstat querying. (default 1 second)\n'
+	result += '\t\033[95m-j\033[0m: INT        Number of parallel jobs. [1]\n'
+	result += '\t\033[95m-q\033[0m: STR[,STR]  Queue and/or queue@server. [all nodes]\n'
+	result += '\t-t: INT        Number of threads(CPUs) used by each job. [1]\n'
+	result += '\t-s: INT        Time interval (s) between qstat querying. [2] seconds\n'
 	result += '\t-r:            Submit jobs in random order. (default makefile context order)\n'
+	result += '\t-m: FLOAT      Amount of GB memory uesed by each job. (default No limitation)\n'
 	result += '\t-k:            Skip error jobs and continue rest jobs. (default auto-kill rest jobs)\n'
 	result += '\t-h:            Help information.\n'
 	result += '\n\033[95mEaster Egg:\033[0m\n'
@@ -482,7 +482,7 @@ def usage():
 if __name__ == "__main__":
 	# get paraters
 	n_jobs, threads, make_file, queue, auto_kill, sleep_time, mem_gb, random_submit =\
-			1, 1, None, None, True, 1, None, False  # default
+			1, 1, None, None, True, 2, None, False  # default
 	try:
 		opts, args = getopt.getopt(sys.argv[1:], "hkrj:t:f:q:s:m:")
 	except getopt.GetoptError:
